@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -e
+
+ROOT_DIR=$(realpath "$(dirname "$0")/..")
+
+if ! [ -x "$(command -v node)" ]; then
+  echo "Node.js must be installed and available in PATH." >&2
+  exit 1
+fi
+
+if [ ! -d "$ROOT_DIR/build" ]; then
+    if ! [ -x "$(command -v npm)" ]; then
+      echo "NPM must be installed and available in PATH." >&2
+      exit 1
+    fi
+
+    echo -en "\e[94m"
+    echo "Welcome to Pharus!"
+    echo Performing first-time setup
+    "$ROOT_DIR/bin/setup.js" "$@" || exit 1
+    echo -e "\e[0m"
+fi
+
+node "$ROOT_DIR/build/main.js" "$@"

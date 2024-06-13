@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Metric Chart</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        #chart {
+            padding: 1em;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+<canvas id="chart"></canvas>
+
+<script type="module">
+    import {
+        Chart,
+        LinearScale,
+        BarController,
+        CategoryScale,
+        BarElement,
+        Colors,
+        Legend,
+        Title,
+    } from "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/+esm"
+
+    Chart.register(LinearScale, BarController, CategoryScale, BarElement, Colors, Legend, Title)
+
+    const { title, data } = await (await fetch("/params")).json()
+
+    if (title)
+        document.title = title
+
+    new Chart(
+        document.getElementById("chart"),
+        {
+            type: "bar",
+            data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        text: title,
+                        display: true,
+                    },
+                },
+                scales: {
+                    y: { beginAtZero: true },
+                },
+            },
+        },
+    )
+</script>
+</body>
+</html>
