@@ -46,8 +46,11 @@ export async function runFlow(
     if (existsSync(reportDir))
         throw new Error(`report directory already exists (${reportDir})`)
 
-    console.log("Launching headless browser")
-    const browser = await puppeteer.launch({ headless: !headful })
+    console.log(`Launching ${headful ? "headful" : "headless"} browser`)
+    const browser = await puppeteer.launch({
+        headless: !headful,
+        args: BROWSER_ARGS,
+    })
 
     const reportSet: ReportSet = {}
 
@@ -57,8 +60,9 @@ export async function runFlow(
     for (const pattern of patterns) {
         try {
             const port = app.start(pattern)
+            const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
 
-            const url = `http://localhost:${port}`
+            const url = `http://${hostname}:${port}`
             console.debug(`Web app is listening to ${url}`)
 
             console.log(`Running user flow: '${flowName}'`)

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -e
+
+ROOT_DIR=$(realpath "$(dirname "$0")/..")
+
+# build image if needed
+docker image inspect pharus_cli > /dev/null 2>&1 \
+    || docker build -t pharus_cli "$ROOT_DIR"
+
+docker run --rm -it \
+    -v "$ROOT_DIR"/apps:/pharus/apps \
+    -v "$ROOT_DIR"/reports:/pharus/reports \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -e HOST_PATH="$ROOT_DIR" \
+    --add-host host.docker.internal:host-gateway \
+    pharus_cli "$@"

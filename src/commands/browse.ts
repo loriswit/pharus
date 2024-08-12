@@ -9,12 +9,20 @@ export async function browseApp(appName: string, patternName: string) {
 
     try {
         const port = app.start(patternName)
+        const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
+
+        const url = `http://${hostname}:${port}`
+        console.debug(`Web app is listening to ${url}`)
 
         console.log("Launching browser")
-        const browser = await puppeteer.launch({ headless: false, defaultViewport: null })
+        const browser = await puppeteer.launch({
+            headless: false,
+            defaultViewport: null,
+            args: BROWSER_ARGS,
+        })
 
         const [page] = await browser.pages()
-        await page.goto(`http://localhost:${port}`)
+        await page.goto(url)
         await new Promise(resolve => page.once("close", () => resolve(true)))
 
     } finally {

@@ -6,6 +6,8 @@ declare global {
     var PKG_NAME: string
     var PKG_VERSION: string
     var VERBOSE: boolean
+    var BROWSER_ARGS: string[]
+    var IN_CONTAINER: boolean
 }
 
 globalThis.PKG_ROOT = resolve(import.meta.dirname, "..", "..")
@@ -16,6 +18,10 @@ globalThis.PKG_NAME = pkg.name
 globalThis.PKG_VERSION = pkg.version
 
 globalThis.VERBOSE = false
+globalThis.BROWSER_ARGS = []
+
+// set to true if running inside a Docker container
+globalThis.IN_CONTAINER = !!process.env.HOST_PATH
 
 const logError = console.error
 console.error = (...data) => logError("\x1b[31m" + data.join(" ") + "\x1b[0m")

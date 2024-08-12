@@ -38,7 +38,7 @@ export function checkDockerAvailable(): void {
         if (e.status === 130 || e.status >= 255) // process exited unusually
             throw e
 
-        throw new Error("the docker daemon is not running.")
+        throw new Error("the docker daemon is either not running or you don't have sufficient permissions")
     }
 }
 

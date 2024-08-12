@@ -77,7 +77,9 @@ export class Plot {
             headless: false,
             args: [
                 "--window-size=900,500",
-                `--app=http://localhost:${address.port}`],
+                `--app=http://localhost:${address.port}`,
+                ...BROWSER_ARGS,
+            ],
             defaultViewport: null,
         })
 

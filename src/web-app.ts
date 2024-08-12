@@ -62,9 +62,18 @@ export class WebApp {
             const hash = createHash("md5").update(patternDir).digest("hex").slice(24)
             const projectName = `${PKG_NAME}_${this.name}_${patternName}_${hash}`
 
+            // if running inside a container, provide host path to Docker Compose
+            const projectDir = IN_CONTAINER ?
+                [process.env.HOST_PATH, "apps", this.name, "patterns", patternName].join("/") :
+                patternDir
+
             const stdout = execSync(
                 `docker compose --project-name ${projectName} up --build --detach`,
-                { cwd: patternDir, stdio: "pipe" })
+                {
+                    cwd: patternDir,
+                    stdio: "pipe",
+                    env: { ...process.env, PROJECT_DIR: projectDir },
+                })
 
             console.debug(stdout)
 

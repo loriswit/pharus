@@ -10,6 +10,7 @@ program
         "versions of the same web app and compare their performances.")
     .version(PKG_VERSION)
     .option("-v, --verbose", "print additional details for debugging purpose")
+    .option("--no-sandbox", "disable browser sandbox (dangerous)")
 
 program
     .command("run")
@@ -43,6 +44,10 @@ program
     .action(actionWrapper(browseApp))
 
 program.on("option:verbose", () => VERBOSE = true)
+program.on("option:no-sandbox", () => {
+    console.warn("Warning: browser sandbox is disabled! Make sure your entirely trust the web app.")
+    BROWSER_ARGS = ["--no-sandbox", "--disable-setuid-sandbox"]
+})
 
 program.parse()
 

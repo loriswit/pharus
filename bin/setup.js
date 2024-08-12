@@ -22,6 +22,22 @@ try {
     const browserPath = dirname(puppeteer.executablePath())
     console.log(`Notice: browser has been installed in ${browserPath}`)
 
+    if (process.platform === "linux") {
+        // print missing dependencies if any
+        const { stdout } = spawnSync("ldd", [browserPath + "/chrome"])
+        if (stdout) {
+            const missingDeps = stdout.toString()
+                .split("\n")
+                .filter(line => line.includes("not found"))
+                .map(line => line.match(/\s*(\S+)\s/)[1])
+
+            if (missingDeps.length > 0) {
+                console.warn("Warning: the following dependencies are missing and must be installed.")
+                missingDeps.forEach(dep => console.warn(`  - ${dep}`))
+            }
+        }
+    }
+
 } catch (error) {
     console.error(`Error: ${error.message}`)
     if (debug) console.debug(error)
