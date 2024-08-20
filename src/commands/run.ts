@@ -8,6 +8,7 @@ import { WebApp } from "../web-app.js"
 import { type ReportSet } from "../report.js"
 
 export interface RunFlowOptions {
+    iterations: number
     patterns: string[]
     plot: string
     save: string
@@ -21,6 +22,7 @@ export async function runFlow(
     appName: string,
     flowName: string,
     {
+        iterations = 10,
         patterns,
         plot,
         save,
@@ -57,35 +59,41 @@ export async function runFlow(
     if (!patterns)
         patterns = app.patternList()
 
-    for (const pattern of patterns) {
-        try {
-            const port = app.start(pattern)
-            const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
+    for (let i = 0; i < iterations; i++)
+        for (const pattern of patterns) {
+            if (!reportSet[pattern])
+                reportSet[pattern] = []
 
-            const url = `http://${hostname}:${port}`
-            console.debug(`Web app is listening to ${url}`)
+            try {
+                const port = app.start(pattern)
+                const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
 
-            console.log(`Running user flow: '${flowName}'`)
-            reportSet[pattern] = await flow.run(browser, url, {
-                name: `${appName}-${pattern}`,
-                mode: FlowMode.Timespan,
-                timeout: timeout * 1000,
-                generateReport: { json: resolve(reportDir, `${pattern}.json`) },
-                settings: {
-                    throttling: {
-                        cpuSlowdownMultiplier: 4 / cpu,
-                        requestLatencyMs: 150,
-                        throughputKbps: 1600 * net,
-                        downloadThroughputKbps: 1600 * net,
-                        uploadThroughputKbps: 750 * net,
+                const url = `http://${hostname}:${port}`
+                console.debug(`Web app is listening to ${url}`)
+
+                const reportFilename = String(i + 1).padStart(Math.floor(Math.log10(iterations) + 1), "0")
+
+                console.log(`Running user flow: '${flowName}' (${i + 1} / ${iterations})`)
+                reportSet[pattern].push(await flow.run(browser, url, {
+                    name: `${appName}-${pattern}`,
+                    mode: FlowMode.Timespan,
+                    timeout: timeout * 1000,
+                    generateReport: { json: resolve(reportDir, pattern, `${reportFilename}.json`) },
+                    settings: {
+                        throttling: {
+                            cpuSlowdownMultiplier: 4 / cpu,
+                            requestLatencyMs: 150,
+                            throughputKbps: 1600 * net,
+                            downloadThroughputKbps: 1600 * net,
+                            uploadThroughputKbps: 750 * net,
+                        },
                     },
-                },
-            })
+                }))
 
-        } finally {
-            app.stop(pattern)
+            } finally {
+                app.stop(pattern)
+            }
         }
-    }
 
     console.log("Closing browser")
     await browser.close()

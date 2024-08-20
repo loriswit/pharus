@@ -5,6 +5,7 @@ import { Plot } from "../plot.js"
 
 export interface DrawPlotOptions {
     patterns: string[]
+    truncate: number
     title: string
 }
 
@@ -13,6 +14,7 @@ const metricAlts: Record<string, string> = {
     lcp: "largest-contentful-paint",
     tbt: "total-blocking-time",
     cls: "cumulative-layout-shift",
+    "time-to-interactive": "interactive",
     tti: "interactive",
     "time-to-first-byte": "server-response-time",
     ttfb: "server-response-time",
@@ -23,14 +25,15 @@ const metricAlts: Record<string, string> = {
 export async function drawPlot(
     reportNameOrSet: string | ReportSet,
     metric: string,
-    { patterns, title }: Partial<DrawPlotOptions>,
+    { patterns, title, truncate = 20 }: Partial<DrawPlotOptions>,
 ) {
     let reportSet: ReportSet
 
     if (typeof reportNameOrSet === "string") {
         if (!patterns?.length)
-            patterns = readdirSync(resolvePath(reportNameOrSet, "reports"))
-                .map(filename => filename.replace(/\.json$/, ""))
+            patterns = readdirSync(resolvePath(reportNameOrSet, "reports"), { withFileTypes: true })
+                .filter(entry => entry.isDirectory())
+                .map(entry => entry.name)
 
         reportSet = loadReportSet(reportNameOrSet, patterns)
 
@@ -41,7 +44,7 @@ export async function drawPlot(
     metric = metricAlts[metric] ?? metric
 
     const stepsNames = getStepNames(reportSet)
-    const datasets = getMetricDatasets(reportSet, metric)
+    const datasets = getMetricDatasets(reportSet, metric, truncate / 100)
 
     const plot = new Plot(stepsNames, datasets, { title: title ?? metric })
     await plot.displayInBrowser()

@@ -18,6 +18,7 @@ program
     .summary("run user flow and generate report")
     .argument("<app>", "the web app name")
     .argument("<flow>", "the user flow name")
+    .option("-i, --iterations <count>", "number of iterations (default: 10)")
     .option("-p, --patterns <patterns...>", "only include some versions of the app")
     .option("--plot <metric>", "draw a plot of a specific metric")
     .option("--save <name>", "set a custom name for the report")
@@ -34,7 +35,8 @@ program
     .argument("<report>", "The report name")
     .argument("<metric>", "The metric to plot")
     .option("-p, --patterns <patterns...>", "only include some versions of the app")
-    .option("-t, --title <title>", "the plot title")
+    .option("-t, --truncate <percentile>", "truncated mean percentile (default: 20)")
+    .option("--title <title>", "the plot title")
     .action(actionWrapper(drawPlot))
 
 program

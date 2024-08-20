@@ -1,9 +1,9 @@
 import { resolve } from "node:path"
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync } from "node:fs"
 import { type FlowResult } from "lighthouse"
 import { getDeepProperty, resolvePath } from "./utils/helpers.js"
 
-export type ReportSet = Record<string, FlowResult>
+export type ReportSet = Record<string, FlowResult[]>
 
 export interface Dataset {
     label: string
@@ -14,33 +14,51 @@ export function loadReportSet(reportName: string, patterns: string | string[]): 
     if (!Array.isArray(patterns)) patterns = [patterns]
     const reportDir = resolvePath(reportName, "reports")
 
-    return Object.fromEntries((patterns as string[]).map(pattern => {
-        const reportFile = resolve(reportDir, `${pattern}.json`)
-        let report: FlowResult
-        try {
-            const json = readFileSync(reportFile, { encoding: "utf-8" })
-            report = JSON.parse(json)
-        } catch (e: any) {
-            if (e instanceof SyntaxError)
-                throw new Error(`failed to parse report for pattern '${pattern}': ${e.message} (${reportFile})`)
-            if (e.code === "ENOENT")
-                throw new Error(`report for pattern '${pattern}' is missing (${reportFile})`)
-            else throw e
+    return Object.fromEntries(patterns.map(pattern => {
+        const patternDir = resolve(reportDir, pattern)
+        const reportFiles = readdirSync(patternDir).filter(file => file.match(/^\d+\.json$/))
+
+        const reports: FlowResult[] = []
+        for (const reportFile of reportFiles) {
+            try {
+                const index = Number(reportFile.match(/\d+/)?.[0]) - 1
+                const json = readFileSync(resolve(patternDir, reportFile), { encoding: "utf-8" })
+                reports[index] = JSON.parse(json)
+            } catch (e: any) {
+                if (e instanceof SyntaxError)
+                    throw new Error(`failed to parse report for pattern '${pattern}': ${e.message} (${reportFile})`)
+                if (e.code === "ENOENT")
+                    throw new Error(`report for pattern '${pattern}' is missing (${reportFile})`)
+                else throw e
+            }
         }
-        return [[pattern], report]
-    }))
+        return [pattern, reports]
+    })
+        // only keep patterns that have at least one report
+        .filter(([_, reports]) => reports.length > 0))
 }
 
-export function getMetricDatasets(reportSet: ReportSet, metric: string): Dataset[] {
+export function getMetricDatasets(reportSet: ReportSet, metric: string, truncate: number = 0): Dataset[] {
     if (!metric.includes("."))
         metric += ".numericValue"
 
-    return Object.entries(reportSet).map(([pattern, report]) => ({
+    // compute number of discarded values, according to truncation ratio
+    const initReportsCount = Object.values(reportSet)[0].length
+    const discarded = Math.min(Math.floor(initReportsCount * truncate), Math.ceil(initReportsCount / 2) - 1)
+    const finaleReportsCount = initReportsCount - discarded * 2
+
+    console.log(`Generating datasets (${Math.round(truncate * 100)}% truncated mean)`)
+
+    return Object.entries(reportSet).map(([pattern, reports]) => ({
         label: pattern,
-        data: report.steps.map(step => getDeepProperty(step.lhr.audits, metric)),
+        data: reports[0].steps.map((_, index) => reports
+            .map(report => getDeepProperty(report.steps[index].lhr.audits, metric))  // fetch property
+            .toSorted()                                                              // sort values
+            .slice(discarded, initReportsCount - discarded)                          // truncate
+            .reduce((a, b) => (a ?? NaN) + (b ?? NaN)) ?? NaN / finaleReportsCount), // compute mean value
     }))
 }
 
 export function getStepNames(reportSet: ReportSet): string[] {
-    return Object.values(reportSet)[0].steps.map(step => step.name)
+    return Object.values(reportSet)[0][0].steps.map(step => step.name)
 }
