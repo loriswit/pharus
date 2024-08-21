@@ -32,6 +32,14 @@ export async function runFlow(
         headful = false,
     }: Partial<RunFlowOptions> = {},
 ) {
+    // validate options
+    for (const arg of ["iterations", "cpu", "net", "timeout"])
+        if (arg in arguments[2] && !(arguments[2][arg] > 0))
+            throw new Error(`the '${arg}' option must be a positive number`)
+
+    if (save?.length === 0)
+        throw new Error(`the 'save' option must not be an empty string`)
+
     checkDockerAvailable()
 
     const app = new WebApp(appName)

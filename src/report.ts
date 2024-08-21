@@ -16,7 +16,15 @@ export function loadReportSet(reportName: string, patterns: string | string[]): 
 
     return Object.fromEntries(patterns.map(pattern => {
         const patternDir = resolve(reportDir, pattern)
-        const reportFiles = readdirSync(patternDir).filter(file => file.match(/^\d+\.json$/))
+        const reportFiles = []
+
+        try {
+            reportFiles.push(...readdirSync(patternDir).filter(file => file.match(/^\d+\.json$/)))
+        } catch (e: any) {
+            if (e.code === "ENOENT")
+                throw new Error(`pattern '${pattern}' is missing from report (${patternDir})`)
+            else throw e
+        }
 
         const reports: FlowResult[] = []
         for (const reportFile of reportFiles) {

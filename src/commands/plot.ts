@@ -27,6 +27,9 @@ export async function drawPlot(
     metric: string,
     { patterns, title, truncate = 20 }: Partial<DrawPlotOptions>,
 ) {
+    if (!(truncate >= 0 && truncate <= 49))
+        throw new Error(`the 'truncate' option must be a number between 0 and 49`)
+
     let reportSet: ReportSet
 
     if (typeof reportNameOrSet === "string") {
