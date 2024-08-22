@@ -1,6 +1,8 @@
 import { resolve } from "node:path"
 import { execSync } from "node:child_process"
 import { existsSync } from "node:fs"
+import type { PuppeteerLaunchOptions } from "puppeteer"
+import puppeteer, { Browser } from "puppeteer"
 
 /**
  * Returns the value of a property inside nested objects.
@@ -53,4 +55,19 @@ export function hasComposeFile(path: string): boolean {
 
     return allowedFilenames
         .some(filename => existsSync(resolve(path, filename)))
+}
+
+/**
+ * Launches a web browser, installing it first if needed.
+ */
+export async function launchBrowser(options?: PuppeteerLaunchOptions): Promise<Browser> {
+    try {
+        puppeteer.executablePath()
+    } catch (e) {
+        console.warn("Browser is missing, installing again")
+        const stdout = execSync(`npx puppeteer browsers install chrome`)
+        console.debug(stdout)
+    }
+
+    return puppeteer.launch(options)
 }

@@ -1,7 +1,6 @@
 import { resolve } from "node:path"
 import { existsSync } from "node:fs"
-import puppeteer from "puppeteer"
-import { checkDockerAvailable } from "../utils/helpers.js"
+import { checkDockerAvailable, launchBrowser } from "../utils/helpers.js"
 import { FlowMode } from "../flow.js"
 import { drawPlot } from "./plot.js"
 import { WebApp } from "../web-app.js"
@@ -57,7 +56,7 @@ export async function runFlow(
         throw new Error(`report directory already exists (${reportDir})`)
 
     console.log(`Launching ${headful ? "headful" : "headless"} browser`)
-    const browser = await puppeteer.launch({
+    const browser = await launchBrowser({
         headless: !headful,
         args: BROWSER_ARGS,
     })
@@ -74,6 +73,8 @@ export async function runFlow(
 
             try {
                 const port = app.start(pattern)
+                process.on("SIGINT", () => app.stop(pattern))
+
                 const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
 
                 const url = `http://${hostname}:${port}`

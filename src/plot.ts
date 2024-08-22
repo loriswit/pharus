@@ -3,8 +3,8 @@ import { resolve } from "node:path"
 import { type Server } from "node:http"
 import { type ListenOptions } from "node:net"
 import Koa from "koa"
-import puppeteer from "puppeteer"
 import { type Dataset } from "./report.js"
+import { launchBrowser } from "./utils/helpers.js"
 
 export interface PlotOptions {
     title: string
@@ -73,11 +73,14 @@ export class Plot {
         if (address === null || typeof address !== "object")
             throw new Error("Failed to start web server")
 
-        const browser = await puppeteer.launch({
+        const url = `http://localhost:${address.port}`
+        console.debug(`Plot is accessible through ${url}`)
+
+        const browser = await launchBrowser({
             headless: false,
             args: [
                 "--window-size=900,500",
-                `--app=http://localhost:${address.port}`,
+                `--app=${url}`,
                 ...BROWSER_ARGS,
             ],
             defaultViewport: null,

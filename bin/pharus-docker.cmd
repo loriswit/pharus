@@ -6,7 +6,7 @@ set ROOT_DIR=%~dp0..
 docker image inspect pharus_cli >nul 2>&1 ^
     || docker build -t pharus_cli %ROOT_DIR%
 
-docker run --rm -it ^
+docker run --rm -it --name pharus_cli ^
     -v %ROOT_DIR%\apps:/pharus/apps ^
     -v %ROOT_DIR%\reports:/pharus/reports ^
     -v /var/run/docker.sock:/var/run/docker.sock ^

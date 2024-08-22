@@ -2,6 +2,7 @@ import { program } from "commander"
 import { runFlow } from "./commands/run.js"
 import { drawPlot } from "./commands/plot.js"
 import { browseApp } from "./commands/browse.js"
+import { cleanCache } from "./commands/clean.js"
 import "./utils/globals.js"
 
 program
@@ -34,16 +35,25 @@ program
     .summary("draw plot for a metric")
     .argument("<report>", "The report name")
     .argument("<metric>", "The metric to plot")
-    .option("-p, --patterns <patterns...>", "only include some versions of the app")
+    .option("-p, --patterns <patterns...>", "only include some rendering patterns")
     .option("-t, --truncate <percentile>", "truncated mean percentile (default: 20)", parseInt)
     .option("--title <title>", "the plot title")
     .action(actionWrapper(drawPlot))
 
 program
     .command("browse")
+    .description("Browse an web app with a specific rendering pattern (for debugging purpose)")
+    .summary("freely browse a web app")
     .argument("<app>", "the web app name")
     .argument("<pattern>", "a rendering pattern")
     .action(actionWrapper(browseApp))
+
+program
+    .command("clean")
+    .description("Clean all docker images and remove the browser")
+    .summary("clean the cache")
+    .option("-f, --force", "skip confirmation")
+    .action(actionWrapper(cleanCache))
 
 program.on("option:verbose", () => VERBOSE = true)
 program.on("option:no-sandbox", () => {
