@@ -64,7 +64,7 @@ export async function launchBrowser(options?: PuppeteerLaunchOptions): Promise<B
     try {
         puppeteer.executablePath()
     } catch (e) {
-        console.warn("Browser is missing, installing again")
+        console.warn("Browser is missing, reinstalling")
         const stdout = execSync(`npx puppeteer browsers install chrome`)
         console.debug(stdout)
     }

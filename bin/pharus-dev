@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -e
-
-ROOT_DIR=$(realpath "$(dirname "$0")/..")
-
-$ROOT_DIR/node_modules/.bin/tsx "$ROOT_DIR/src/main.ts" "$@"

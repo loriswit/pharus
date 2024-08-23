@@ -24,8 +24,9 @@ COPY package*.json .npmrc ./
 RUN npm ci
 
 # build source code
-COPY tsconfig.json ./
+COPY tsconfig.json vite.config.ts ./
 COPY src src/
+COPY assets assets/
 RUN npm run build
 
 ENTRYPOINT ["node", "build/main", "--no-sandbox"]

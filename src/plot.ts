@@ -1,10 +1,11 @@
-import { createReadStream } from "node:fs"
+import { createReadStream, existsSync, lstatSync } from "node:fs"
 import { resolve } from "node:path"
 import { type Server } from "node:http"
 import { type ListenOptions } from "node:net"
 import Koa from "koa"
 import { type Dataset } from "./report.js"
 import { launchBrowser } from "./utils/helpers.js"
+import { execSync } from "node:child_process"
 
 export interface PlotOptions {
     title: string
@@ -12,6 +13,14 @@ export interface PlotOptions {
 
 export interface BrowserOptions {
     onClose: Function
+}
+
+export interface ParamsPayload {
+    title: string
+    data: {
+        labels: string[]
+        datasets: Dataset[]
+    }
 }
 
 export class Plot {
@@ -30,6 +39,13 @@ export class Plot {
      * Starts a web server which displays the plot.
      */
     public startServer(serverOptions: ListenOptions | undefined = undefined): Server {
+        // build assets if Vite is installed (dev only)
+        const vitePath = resolve(PKG_ROOT, "node_modules", ".bin", "vite")
+        if (existsSync(vitePath)) {
+            const stdout = execSync(`${vitePath} build`)
+            console.debug(stdout)
+        }
+
         const app = new Koa().use(async ctx => {
             if (ctx.request.url === "/params") {
                 ctx.type = "application/json"
@@ -39,11 +55,36 @@ export class Plot {
                         labels: this.labels,
                         datasets: this.datasets,
                     },
+                } as ParamsPayload
+
+            } else {
+                // act as a simple web server
+                const filename = ctx.request.url.substring(1) // remove initial slash
+                const assetsRoot = resolve(PKG_ROOT, "build", "assets")
+                const targetFile = resolve(assetsRoot, filename)
+
+                // prevent access to files outside root folder
+                if (targetFile.indexOf(assetsRoot) !== 0) {
+                    ctx.status = 403
+                    ctx.body = "Forbidden"
+                    return
                 }
 
-            } else if (ctx.request.url === "/") {
-                ctx.type = "html"
-                ctx.body = createReadStream(resolve(import.meta.dirname, "assets", "plot.html"))
+                if (existsSync(targetFile) && lstatSync(targetFile).isFile()) {
+                    ctx.body = createReadStream(targetFile)
+                    // determine MIME type
+                    const ext = targetFile.split(".").slice(-1)[0]
+                    const mimeTypes: Record<string, string> = {
+                        "html": "text/html",
+                        "css": "text/css",
+                        "js": "text/javascript",
+                    }
+                    if (ext in mimeTypes)
+                        ctx.type = mimeTypes[ext]
+                } else {
+                    ctx.status = 404
+                    ctx.body = "Not found"
+                }
             }
         })
 
@@ -73,7 +114,7 @@ export class Plot {
         if (address === null || typeof address !== "object")
             throw new Error("Failed to start web server")
 
-        const url = `http://localhost:${address.port}`
+        const url = `http://localhost:${address.port}/plot.html`
         console.debug(`Plot is accessible through ${url}`)
 
         const browser = await launchBrowser({

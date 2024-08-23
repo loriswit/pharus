@@ -7,7 +7,11 @@ export type ReportSet = Record<string, FlowResult[]>
 
 export interface Dataset {
     label: string
-    data: (number | undefined)[]
+    data: {
+        y: number,
+        yMax?: number,
+        yMin?: number,
+    }[]
 }
 
 export function loadReportSet(reportName: string, patterns: string | string[]): ReportSet {
@@ -60,10 +64,15 @@ export function getMetricDatasets(reportSet: ReportSet, metric: string, truncate
     return Object.entries(reportSet).map(([pattern, reports]) => ({
         label: pattern,
         data: reports[0].steps.map((_, index) => reports
-            .map(report => getDeepProperty(report.steps[index].lhr.audits, metric))  // fetch property
-            .toSorted()                                                              // sort values
-            .slice(discarded, initReportsCount - discarded)                          // truncate
-            .reduce((a, b) => (a ?? NaN) + (b ?? NaN)) ?? NaN / finaleReportsCount), // compute mean value
+            .map(report =>
+                getDeepProperty(report.steps[index].lhr.audits, metric) ?? NaN)  // fetch property
+            .toSorted()                                                          // sort values
+            .slice(discarded, initReportsCount - discarded)                      // truncate
+            .reduce((acc, x) => ({
+                y: acc.y + x / finaleReportsCount,      // compute mean value
+                yMax: x > acc.yMax ? x : acc.yMax,      // compute max value
+                yMin: x < acc.yMin ? x : acc.yMin,      // compute min value
+            }), { y: 0, yMax: 0, yMin: Infinity })),
     }))
 }
 
