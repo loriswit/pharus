@@ -27,7 +27,11 @@ export class WebApp {
     }
 
     public patternList(): string[] {
-        return readdirSync(resolve(this.path, "patterns"))
+        const patternsDir = resolve(this.path, "patterns")
+        const patterns = readdirSync(patternsDir)
+        if (!patterns.length)
+            throw new Error(`app '${this.name}' must provide at least one pattern (${patternsDir})`)
+        return patterns
     }
 
     public loadFlow(flowName: string): Flow {
