@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from "node:fs"
-import { resolve } from "node:path"
+import { basename, resolve } from "node:path"
 import { execSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { hasComposeFile, resolvePath } from "./utils/helpers.js"
@@ -19,7 +19,7 @@ export class WebApp {
     private readonly status: Record<string, PatternStatus> = {}
 
     public constructor(name: string) {
-        this.name = name
+        this.name = basename(name)
 
         this.path = resolvePath(name, "apps")
         if (!existsSync(this.path))
