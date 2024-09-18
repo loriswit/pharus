@@ -1,5 +1,5 @@
 import { resolve } from "node:path"
-import { existsSync } from "node:fs"
+import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { checkDockerAvailable, launchBrowser } from "../utils/helpers.js"
 import { FlowMode } from "../flow.js"
 import { drawPlot } from "./plot.js"
@@ -66,48 +66,77 @@ export async function runFlow(
     if (!patterns)
         patterns = app.patternList()
 
-    for (let i = 0; i < iterations; i++)
-        for (const pattern of patterns) {
-            if (!reportSet[pattern])
-                reportSet[pattern] = []
+    const metadata = {
+        name: save,
+        success: false,
+        params: { iterations, patterns, plot, cpu, net, timeout },
+        startDate: new Date().toISOString(),
+        endDate: undefined as string | undefined,
+        pharusVersion: PKG_VERSION,
+        originalPath: reportDir,
+        cmdLine: process.argv.join(" "),
+        errors: undefined as string[] | undefined,
+    }
 
-            try {
-                const port = app.start(pattern)
-                process.on("SIGINT", () => app.stop(pattern))
+    mkdirSync(reportDir, { recursive: true })
+    writeFileSync(resolve(reportDir, "meta.json"), JSON.stringify(metadata, null, 2))
 
-                const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
+    try {
+        for (let i = 0; i < iterations; i++)
+            for (const pattern of patterns) {
+                if (!reportSet[pattern])
+                    reportSet[pattern] = []
 
-                const url = `http://${hostname}:${port}`
-                console.debug(`Web app is listening to ${url}`)
+                try {
+                    const port = app.start(pattern)
+                    process.on("SIGINT", () => app.stop(pattern))
 
-                const reportFilename = String(i + 1).padStart(Math.floor(Math.log10(iterations) + 1), "0")
+                    const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
 
-                console.log(`Running user flow: '${flowName}' (${i + 1} / ${iterations})`)
-                reportSet[pattern].push(await flow.run(browser, url, {
-                    name: `${appName}-${pattern}`,
-                    mode: FlowMode.Timespan,
-                    timeout: timeout * 1000,
-                    generateReport: { json: resolve(reportDir, pattern, `${reportFilename}.json`) },
-                    settings: {
-                        throttling: {
-                            cpuSlowdownMultiplier: 4 / cpu,
-                            requestLatencyMs: 150,
-                            throughputKbps: 1600 * net,
-                            downloadThroughputKbps: 1600 * net,
-                            uploadThroughputKbps: 750 * net,
+                    const url = `http://${hostname}:${port}`
+                    console.debug(`Web app is listening to ${url}`)
+
+                    const reportFilename = String(i + 1).padStart(Math.floor(Math.log10(iterations) + 1), "0")
+
+                    console.log(`Running user flow: '${flowName}' (${i + 1} / ${iterations})`)
+                    reportSet[pattern].push(await flow.run(browser, url, {
+                        name: `${appName}-${pattern}`,
+                        mode: FlowMode.Timespan,
+                        timeout: timeout * 1000,
+                        generateReport: { json: resolve(reportDir, pattern, `${reportFilename}.json`) },
+                        settings: {
+                            throttling: {
+                                cpuSlowdownMultiplier: 4 / cpu,
+                                requestLatencyMs: 150,
+                                throughputKbps: 1600 * net,
+                                downloadThroughputKbps: 1600 * net,
+                                uploadThroughputKbps: 750 * net,
+                            },
                         },
-                    },
-                }))
-
-            } finally {
-                app.stop(pattern)
+                    }))
+                } catch (error) {
+                    if (error instanceof Error) {
+                        if (!metadata.errors)
+                            metadata.errors = []
+                        metadata.errors.push(error.message)
+                    }
+                    throw error
+                } finally {
+                    app.stop(pattern)
+                }
             }
-        }
 
-    console.log("Closing browser")
-    await browser.close()
+        metadata.success = true
 
-    console.log(`Report saved as '${reportName}' (${reportDir})`)
+    } finally {
+        metadata.endDate = new Date().toISOString()
+        writeFileSync(resolve(reportDir, "meta.json"), JSON.stringify(metadata, null, 2))
+
+        console.log("Closing browser")
+        await browser.close()
+
+        console.log(`Report saved as '${reportName}' (${reportDir})`)
+    }
 
     if (plot)
         await drawPlot(reportSet, plot, { patterns })

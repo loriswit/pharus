@@ -242,6 +242,10 @@ Pharus will fail if a target element cannot be found and doesn't appear on the p
 bin/pharus run --timeout 60 <web-app> <user-flow>
 ```
 
+#### Reports metadata
+
+A `meta.json` file is generated with each report. This file contains various information about the benchmark, such as the values of the parameters, the duration, errors, etc.
+
 ### Missing Chromium dependencies
 
 When trying to run Pharus on a headless machine, it's likely that some libraries required by Chromium won't be installed by default. Pharus will list them the first time you launch it, but it will not install them automatically.
