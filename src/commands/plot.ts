@@ -7,6 +7,7 @@ export interface DrawPlotOptions {
     patterns: string[]
     truncate: number
     title: string
+    legends: string[]
 }
 
 const metricAlts: Record<string, string> = {
@@ -25,7 +26,7 @@ const metricAlts: Record<string, string> = {
 export async function drawPlot(
     reportNameOrSet: string | ReportSet,
     metric: string,
-    { patterns, title, truncate = 20 }: Partial<DrawPlotOptions>,
+    { patterns, title, truncate = 20, legends = [] }: Partial<DrawPlotOptions>,
 ) {
     if (!(truncate >= 0 && truncate <= 49))
         throw new Error(`the 'truncate' option must be a number between 0 and 49`)
@@ -48,6 +49,9 @@ export async function drawPlot(
 
     const stepsNames = getStepNames(reportSet)
     const datasets = getMetricDatasets(reportSet, metric, truncate / 100)
+
+    for (const [index, value] of legends.entries())
+        datasets[index].label = value
 
     const plot = new Plot(stepsNames, datasets, { title: title ?? metric })
     await plot.displayInBrowser()

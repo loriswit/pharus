@@ -38,6 +38,7 @@ program
     .option("-p, --patterns <patterns...>", "only include some rendering patterns")
     .option("-t, --truncate <percentile>", "truncated mean percentile (default: 20)", parseInt)
     .option("--title <title>", "the plot title")
+    .option("-l, --legends <legends...>", "custom legends for patterns")
     .action(actionWrapper(drawPlot))
 
 program

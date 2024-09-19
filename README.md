@@ -177,7 +177,9 @@ You can also specify a "nested" metrics according to the structure of the JSON f
 
 This command instantiates a graphical user interface to show the plot, which may not work when Pharus is executed in a Docker container, or running on a headless device. If that is the case, reports can simply be copied to another device that supports graphical interfaces.
 
-By default, the plot shows the 20% truncated mean of the report values. This can be adjusted with the `--truncate` option. To obtain the list of all available options, run `bin/pharus help plot`.
+By default, the plot shows the 20% truncated mean of the report values. This can be adjusted with the `--truncate` option.
+
+You can customize the plot with the help of the `--tile` and `--legends` options. To list all available options, run `bin/pharus help plot`.
 
 #### Example
 
