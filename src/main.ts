@@ -3,6 +3,7 @@ import { runFlow } from "./commands/run.js"
 import { drawPlot } from "./commands/plot.js"
 import { browseApp } from "./commands/browse.js"
 import { cleanCache } from "./commands/clean.js"
+import { parseIntList } from "./utils/helpers.js";
 import "./utils/globals.js"
 
 program
@@ -36,6 +37,7 @@ program
     .argument("<report>", "The report name")
     .argument("<metric>", "The metric to plot")
     .option("-p, --patterns <patterns...>", "only include some rendering patterns")
+    .option("-s, --steps <numbers...>", "only include some flow steps", parseIntList)
     .option("-t, --truncate <percentile>", "truncated mean percentile (default: 20)", parseInt)
     .option("--title <title>", "the plot title")
     .option("-l, --legends <legends...>", "custom legends for patterns")

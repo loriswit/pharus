@@ -5,6 +5,7 @@ import { Plot } from "../plot.js"
 
 export interface DrawPlotOptions {
     patterns: string[]
+    steps: number[]
     truncate: number
     title: string
     legends: string[]
@@ -26,8 +27,17 @@ const metricAlts: Record<string, string> = {
 export async function drawPlot(
     reportNameOrReport: string | Report,
     metric: string,
-    { patterns, title, truncate = 20, legends = [] }: Partial<DrawPlotOptions>,
+    {
+        patterns,
+        steps = [],
+        truncate = 20,
+        title,
+        legends = []
+    }: Partial<DrawPlotOptions>,
 ) {
+    if (steps.some(step => step < 1))
+        throw new Error(`the 'steps' option only supports positive integers`)
+
     if (!(truncate >= 0 && truncate <= 49))
         throw new Error(`the 'truncate' option must be a number between 0 and 49`)
 
@@ -47,9 +57,15 @@ export async function drawPlot(
     metric = metric.toLowerCase()
     metric = metricAlts[metric] ?? metric
 
-    const stepsNames = report.getStepNames()
+    let stepsNames = report.getStepNames()
     const datasets = report.getMetricDatasets(metric, truncate / 100)
     const unit = report.getNumericUnit(metric)
+
+    if (steps.length > 0) {
+        stepsNames = stepsNames.filter((_, index) => steps.includes(index + 1))
+        for (const dataset of datasets)
+            dataset.data = dataset.data.filter((_, index) => steps.includes(index + 1))
+    }
 
     for (const [index, value] of legends.entries())
         datasets[index].label = value

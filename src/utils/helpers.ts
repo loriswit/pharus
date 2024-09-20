@@ -5,6 +5,15 @@ import type { PuppeteerLaunchOptions } from "puppeteer"
 import puppeteer, { Browser } from "puppeteer"
 
 /**
+ * Parses a list of integers arguments (Commander.js).
+ * @param value
+ * @param list
+ */
+export function parseIntList(value: string, list: number[]): number[] {
+    return list ? list.concat(parseInt(value)) : [parseInt(value)]
+}
+
+/**
  * Returns the value of a property inside nested objects.
  * @param object The root object
  * @param deepProperty Nested properties as a string, e.g. "a.b.c"
