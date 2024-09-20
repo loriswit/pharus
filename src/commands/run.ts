@@ -4,7 +4,7 @@ import { checkDockerAvailable, launchBrowser } from "../utils/helpers.js"
 import { FlowMode } from "../flow.js"
 import { drawPlot } from "./plot.js"
 import { WebApp } from "../web-app.js"
-import { type ReportSet } from "../report.js"
+import { Report } from "../report.js"
 
 export interface RunFlowOptions {
     iterations: number
@@ -61,7 +61,7 @@ export async function runFlow(
         args: BROWSER_ARGS,
     })
 
-    const reportSet: ReportSet = {}
+    const report = new Report()
 
     if (!patterns)
         patterns = app.patternList()
@@ -84,9 +84,6 @@ export async function runFlow(
     try {
         for (let i = 0; i < iterations; i++)
             for (const pattern of patterns) {
-                if (!reportSet[pattern])
-                    reportSet[pattern] = []
-
                 try {
                     const port = app.start(pattern)
                     process.on("SIGINT", () => app.stop(pattern))
@@ -99,7 +96,7 @@ export async function runFlow(
                     const reportFilename = String(i + 1).padStart(Math.floor(Math.log10(iterations) + 1), "0")
 
                     console.log(`Running user flow: '${flowName}' (${i + 1} / ${iterations})`)
-                    reportSet[pattern].push(await flow.run(browser, url, {
+                    const result = await flow.run(browser, url, {
                         name: `${appName}-${pattern}`,
                         mode: FlowMode.Timespan,
                         timeout: timeout * 1000,
@@ -113,7 +110,9 @@ export async function runFlow(
                                 uploadThroughputKbps: 750 * net,
                             },
                         },
-                    }))
+                    })
+                    report.pushFlowResult(pattern, result)
+
                 } catch (error) {
                     if (error instanceof Error) {
                         if (!metadata.errors)
@@ -139,5 +138,5 @@ export async function runFlow(
     }
 
     if (plot)
-        await drawPlot(reportSet, plot, { patterns })
+        await drawPlot(report, plot, { patterns })
 }

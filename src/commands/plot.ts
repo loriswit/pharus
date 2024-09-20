@@ -1,6 +1,6 @@
 import { readdirSync } from "node:fs"
 import { resolvePath } from "../utils/helpers.js"
-import { getMetricDatasets, getStepNames, loadReportSet, type ReportSet } from "../report.js"
+import { Report } from "../report.js"
 import { Plot } from "../plot.js"
 
 export interface DrawPlotOptions {
@@ -24,35 +24,36 @@ const metricAlts: Record<string, string> = {
 }
 
 export async function drawPlot(
-    reportNameOrSet: string | ReportSet,
+    reportNameOrReport: string | Report,
     metric: string,
     { patterns, title, truncate = 20, legends = [] }: Partial<DrawPlotOptions>,
 ) {
     if (!(truncate >= 0 && truncate <= 49))
         throw new Error(`the 'truncate' option must be a number between 0 and 49`)
 
-    let reportSet: ReportSet
+    let report: Report
 
-    if (typeof reportNameOrSet === "string") {
+    if (typeof reportNameOrReport === "string") {
         if (!patterns?.length)
-            patterns = readdirSync(resolvePath(reportNameOrSet, "reports"), { withFileTypes: true })
+            patterns = readdirSync(resolvePath(reportNameOrReport, "reports"), { withFileTypes: true })
                 .filter(entry => entry.isDirectory())
                 .map(entry => entry.name)
 
-        reportSet = loadReportSet(reportNameOrSet, patterns)
+        report = Report.load(reportNameOrReport, patterns)
 
     } else
-        reportSet = reportNameOrSet
+        report = reportNameOrReport
 
     metric = metric.toLowerCase()
     metric = metricAlts[metric] ?? metric
 
-    const stepsNames = getStepNames(reportSet)
-    const datasets = getMetricDatasets(reportSet, metric, truncate / 100)
+    const stepsNames = report.getStepNames()
+    const datasets = report.getMetricDatasets(metric, truncate / 100)
+    const unit = report.getNumericUnit(metric)
 
     for (const [index, value] of legends.entries())
         datasets[index].label = value
 
-    const plot = new Plot(stepsNames, datasets, { title: title ?? metric })
+    const plot = new Plot(stepsNames, datasets, { title: title ?? metric, unit })
     await plot.displayInBrowser()
 }

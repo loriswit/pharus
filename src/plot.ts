@@ -9,6 +9,7 @@ import { execSync } from "node:child_process"
 
 export interface PlotOptions {
     title: string
+    unit: string
 }
 
 export interface BrowserOptions {
@@ -17,6 +18,7 @@ export interface BrowserOptions {
 
 export interface ParamsPayload {
     title: string
+    unit: string | undefined
     data: {
         labels: string[]
         datasets: Dataset[]
@@ -51,6 +53,7 @@ export class Plot {
                 ctx.type = "application/json"
                 ctx.body = {
                     title: this.options.title,
+                    unit: this.options.unit,
                     data: {
                         labels: this.labels,
                         datasets: this.datasets,
@@ -73,13 +76,13 @@ export class Plot {
                 if (existsSync(targetFile) && lstatSync(targetFile).isFile()) {
                     ctx.body = createReadStream(targetFile)
                     // determine MIME type
-                    const ext = targetFile.split(".").slice(-1)[0]
+                    const ext = targetFile.split(".").at(-1)
                     const mimeTypes: Record<string, string> = {
                         "html": "text/html",
                         "css": "text/css",
                         "js": "text/javascript",
                     }
-                    if (ext in mimeTypes)
+                    if (ext && ext in mimeTypes)
                         ctx.type = mimeTypes[ext]
                 } else {
                     ctx.status = 404

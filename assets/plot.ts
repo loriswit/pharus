@@ -7,7 +7,7 @@ Chart.register(
     CategoryScale, BarElement, Colors, Legend, Title)
 
 const res = await fetch("/params")
-const { title, data } = await res.json() as ParamsPayload
+const { title, data, unit } = await res.json() as ParamsPayload
 
 if (title)
     document.title = title
@@ -29,7 +29,13 @@ new Chart(
                 },
             },
             scales: {
-                y: { beginAtZero: true },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: unit !== "unitless",
+                        text: unit,
+                    },
+                },
             },
         },
     },
