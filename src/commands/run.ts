@@ -84,10 +84,11 @@ export async function runFlow(
     try {
         for (let i = 0; i < iterations; i++)
             for (const pattern of patterns) {
+                const stopApp = () => app.stop(pattern)
+                process.on("SIGINT", stopApp)
+
                 try {
                     const port = app.start(pattern)
-                    process.on("SIGINT", () => app.stop(pattern))
-
                     const hostname = IN_CONTAINER ? "host.docker.internal" : "localhost"
 
                     const url = `http://${hostname}:${port}`
@@ -121,7 +122,8 @@ export async function runFlow(
                     }
                     throw error
                 } finally {
-                    app.stop(pattern)
+                    process.removeListener("SIGINT", stopApp)
+                    stopApp()
                 }
             }
 
