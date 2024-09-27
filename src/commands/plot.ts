@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { resolvePath } from "../utils/helpers.js"
 import { Report } from "../report.js"
 import { Plot } from "../plot.js"
@@ -44,8 +44,12 @@ export async function drawPlot(
     let report: Report
 
     if (typeof reportNameOrReport === "string") {
+        const reportDir = resolvePath(reportNameOrReport, "reports")
+        if (!existsSync(reportDir))
+            throw new Error(`no such report (${reportDir})`)
+
         if (!patterns?.length)
-            patterns = readdirSync(resolvePath(reportNameOrReport, "reports"), { withFileTypes: true })
+            patterns = readdirSync(reportDir, { withFileTypes: true })
                 .filter(entry => entry.isDirectory())
                 .map(entry => entry.name)
 
