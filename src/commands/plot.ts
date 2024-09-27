@@ -58,6 +58,25 @@ export async function drawPlot(
     } else
         report = reportNameOrReport
 
+    console.log(`Plotting report '${report.metadata.name}'`)
+    console.log(`  Device hostname: ${report.metadata.system?.hostname}`)
+    console.log(`  Date: ${report.metadata.startDate?.toLocaleString()}`)
+    if (report.metadata.startDate && report.metadata.endDate) {
+        const duration = Math.round((report.metadata.endDate.getTime() - report.metadata.startDate.getTime()) / 60000)
+        if (duration > 60)
+            console.log(`  Duration: ${(duration / 60).toFixed(1)} hours`)
+        else
+            console.log(`  Duration: ${duration} minutes`)
+    }
+    console.log(`  Iterations: ${report.metadata.params?.iterations}`)
+    console.log(`  CPU speed mult: ${report.metadata.params?.cpu}`)
+    console.log(`  Network speed mult: ${report.metadata.params?.net}`)
+    if (!report.metadata.success)
+        console.warn("  Warning: errors occurred during report generation")
+
+    console.log()
+    console.debug("Full report metadata:\n", JSON.stringify(report.metadata, null, 2), "\n")
+
     metric = metric.toLowerCase()
     metric = metricAlts[metric] ?? metric
 

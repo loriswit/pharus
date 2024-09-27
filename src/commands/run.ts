@@ -5,6 +5,8 @@ import { FlowMode } from "../flow.js"
 import { drawPlot } from "./plot.js"
 import { WebApp } from "../web-app.js"
 import { Report } from "../report.js"
+import { execSync } from "node:child_process";
+import os from "node:os"
 
 export interface RunFlowOptions {
     iterations: number
@@ -66,20 +68,49 @@ export async function runFlow(
     if (!patterns)
         patterns = app.patternList()
 
-    const metadata = {
+    const dockerInfo = JSON.parse(execSync("docker info --format json").toString())
+
+    report.metadata = {
         name: save,
         success: false,
         params: { iterations, patterns, plot, cpu, net, timeout },
-        startDate: new Date().toISOString(),
-        endDate: undefined as string | undefined,
+        startDate: new Date(),
         pharusVersion: PKG_VERSION,
         originalPath: reportDir,
         cmdLine: process.argv.join(" "),
         errors: undefined as string[] | undefined,
+        system: {
+            hostname: os.hostname(),
+            type: os.type(),
+            platform: os.platform(),
+            version: os.version(),
+            release: os.release(),
+            arch: os.arch(),
+            machine: os.machine(),
+            cpus: [...new Set(os.cpus().map(cpu => cpu.model))],
+            totalmem: os.totalmem(),
+            user: os.userInfo().username
+        },
+        docker: {
+            KernelVersion: dockerInfo.KernelVersion,
+            OperatingSystem: dockerInfo.OperatingSystem,
+            OSVersion: dockerInfo.OSVersion,
+            OSType: dockerInfo.OSType,
+            Architecture: dockerInfo.Architecture,
+            NCPU: dockerInfo.NCPU,
+            MemTotal: dockerInfo.MemTotal,
+            ServerVersion: dockerInfo.ServerVersion,
+            ClientInfo: {
+                Version: dockerInfo.ClientInfo.Version,
+                Os: dockerInfo.ClientInfo.Os,
+                Arch: dockerInfo.ClientInfo.Arch,
+                Context: dockerInfo.ClientInfo.Context,
+            }
+        }
     }
 
     mkdirSync(reportDir, { recursive: true })
-    writeFileSync(resolve(reportDir, "meta.json"), JSON.stringify(metadata, null, 2))
+    writeFileSync(resolve(reportDir, "meta.json"), JSON.stringify(report.metadata, null, 2))
 
     try {
         for (let i = 0; i < iterations; i++)
@@ -116,9 +147,9 @@ export async function runFlow(
 
                 } catch (error) {
                     if (error instanceof Error) {
-                        if (!metadata.errors)
-                            metadata.errors = []
-                        metadata.errors.push(error.message)
+                        if (!report.metadata.errors)
+                            report.metadata.errors = []
+                        report.metadata.errors.push(error.message)
                     }
                     throw error
                 } finally {
@@ -127,11 +158,11 @@ export async function runFlow(
                 }
             }
 
-        metadata.success = true
+        report.metadata.success = true
 
     } finally {
-        metadata.endDate = new Date().toISOString()
-        writeFileSync(resolve(reportDir, "meta.json"), JSON.stringify(metadata, null, 2))
+        report.metadata.endDate = new Date()
+        writeFileSync(resolve(reportDir, "meta.json"), JSON.stringify(report.metadata, null, 2))
 
         console.log("Closing browser")
         await browser.close()

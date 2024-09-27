@@ -14,47 +14,80 @@ export interface Dataset {
     }[]
 }
 
+export type ReportMetadata = Partial<{
+    name: string
+    success: boolean
+    params: Record<string, unknown>
+    startDate: Date
+    endDate: Date
+    pharusVersion: string
+    originalPath: string
+    cmdLine: string
+    errors: string[]
+    system: {
+        hostname: string
+        type: string
+        platform: string
+        version: string
+        release: string
+        arch: string
+        machine: string
+        cpus: string[]
+        totalmem: number
+        user: string
+    }
+    docker: Record<string, unknown>
+}>
+
 export class Report {
     private readonly reportSet: ReportSet
+    public metadata: ReportMetadata
 
-    constructor(reportSet = {}) {
+    public constructor(reportSet = {}, metadata = {}) {
         this.reportSet = reportSet
+        this.metadata = metadata
     }
 
     public static load(reportName: string, patterns: string | string[]): Report {
         if (!Array.isArray(patterns)) patterns = [patterns]
         const reportDir = resolvePath(reportName, "reports")
 
+        const metadataJson = readFileSync(resolve(reportDir, "meta.json"), { encoding: "utf-8" })
+        const metadata = JSON.parse(metadataJson)
+        metadata.startDate = new Date(metadata.startDate)
+        metadata.endDate = new Date(metadata.endDate)
+
         return new this(Object.fromEntries(patterns.map(pattern => {
-            const patternDir = resolve(reportDir, pattern)
-            const reportFiles = []
+                const patternDir = resolve(reportDir, pattern)
+                const reportFiles = []
 
-            try {
-                reportFiles.push(...readdirSync(patternDir).filter(file => file.match(/^\d+\.json$/)))
-            } catch (e: any) {
-                if (e.code === "ENOENT")
-                    throw new Error(`pattern '${pattern}' is missing from report (${patternDir})`)
-                else throw e
-            }
-
-            const reports: FlowResult[] = []
-            for (const reportFile of reportFiles) {
                 try {
-                    const index = Number(reportFile.match(/\d+/)?.[0]) - 1
-                    const json = readFileSync(resolve(patternDir, reportFile), { encoding: "utf-8" })
-                    reports[index] = JSON.parse(json)
+                    reportFiles.push(...readdirSync(patternDir).filter(file => file.match(/^\d+\.json$/)))
                 } catch (e: any) {
-                    if (e instanceof SyntaxError)
-                        throw new Error(`failed to parse report for pattern '${pattern}': ${e.message} (${reportFile})`)
                     if (e.code === "ENOENT")
-                        throw new Error(`report for pattern '${pattern}' is missing (${reportFile})`)
+                        throw new Error(`pattern '${pattern}' is missing from report (${patternDir})`)
                     else throw e
                 }
-            }
-            return [pattern, reports]
-        })
-            // only keep patterns that have at least one report
-            .filter(([_, reports]) => reports.length > 0)))
+
+                const reports: FlowResult[] = []
+                for (const reportFile of reportFiles) {
+                    try {
+                        const index = Number(reportFile.match(/\d+/)?.[0]) - 1
+                        const json = readFileSync(resolve(patternDir, reportFile), { encoding: "utf-8" })
+                        reports[index] = JSON.parse(json)
+                    } catch (e: any) {
+                        if (e instanceof SyntaxError)
+                            throw new Error(`failed to parse report for pattern '${pattern}': ${e.message} (${reportFile})`)
+                        if (e.code === "ENOENT")
+                            throw new Error(`report for pattern '${pattern}' is missing (${reportFile})`)
+                        else throw e
+                    }
+                }
+                return [pattern, reports]
+            })
+                // only keep patterns that have at least one report
+                .filter(([_, reports]) => reports.length > 0)),
+            metadata)
     }
 
     public pushFlowResult(pattern: string, flowResult: FlowResult) {
