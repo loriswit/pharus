@@ -64,7 +64,7 @@ export class Flow {
         // auto-accept dialog boxes
         page.on("dialog", async dialog => await dialog.accept())
 
-        await userFlow.navigate(url)
+        await userFlow.navigate(url, { name: "Initial page load" })
         const runner = new FlowRunner(mode, page, userFlow) as Record<keyof FlowRunner, Function>
 
         try {
