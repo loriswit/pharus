@@ -13,6 +13,10 @@ export interface PlotOptions {
 }
 
 export interface BrowserOptions {
+    windowSize: {
+        width: number
+        height: number
+    }
     onClose: Function
 }
 
@@ -102,14 +106,19 @@ export class Plot {
     /**
      * Opens a browser in "app" mode to display the plot.
      */
-    public async displayInBrowser(options: Partial<BrowserOptions> = {}) {
+    public async displayInBrowser(
+        {
+            onClose = () => {},
+            windowSize = { width: 900, height: 500 },
+        }: Partial<BrowserOptions> = {},
+    ) {
         // if no server is running yet, start server and stop on page close
         if (!this.server) {
             this.server = this.startServer()
-            const onCloseCallback = options.onClose
-            options.onClose = () => {
+            const onCloseCallback = onClose
+            onClose = () => {
                 this.stopServer()
-                onCloseCallback?.()
+                onCloseCallback()
             }
         }
 
@@ -123,7 +132,7 @@ export class Plot {
         const browser = await launchBrowser({
             headless: false,
             args: [
-                "--window-size=900,500",
+                `--window-size=${windowSize.width},${windowSize.height}`,
                 `--app=${url}`,
                 ...BROWSER_ARGS,
             ],
@@ -131,6 +140,6 @@ export class Plot {
         })
 
         const [page] = await browser.pages()
-        page.once("close", () => options.onClose?.())
+        page.once("close", () => onClose())
     }
 }

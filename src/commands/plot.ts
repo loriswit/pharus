@@ -9,6 +9,10 @@ export interface DrawPlotOptions {
     truncate: number
     title: string
     legends: string[]
+    windowSize: {
+        width: number
+        height: number
+    }
 }
 
 const metricAlts: Record<string, string> = {
@@ -32,15 +36,10 @@ export async function drawPlot(
         steps = [],
         truncate = 20,
         title,
-        legends = []
+        legends = [],
+        windowSize,
     }: Partial<DrawPlotOptions>,
 ) {
-    if (steps.some(step => step < 1))
-        throw new Error(`the 'steps' option only supports positive integers`)
-
-    if (!(truncate >= 0 && truncate <= 49))
-        throw new Error(`the 'truncate' option must be a number between 0 and 49`)
-
     let report: Report
 
     if (typeof reportNameOrReport === "string") {
@@ -94,5 +93,5 @@ export async function drawPlot(
         datasets[index].label = value
 
     const plot = new Plot(stepsNames, datasets, { title: title ?? metric, unit })
-    await plot.displayInBrowser()
+    await plot.displayInBrowser({ windowSize })
 }

@@ -5,7 +5,7 @@ import { FlowMode } from "../flow.js"
 import { drawPlot } from "./plot.js"
 import { WebApp } from "../web-app.js"
 import { Report } from "../report.js"
-import { execSync } from "node:child_process";
+import { execSync } from "node:child_process"
 import os from "node:os"
 
 export interface RunFlowOptions {
@@ -33,14 +33,6 @@ export async function runFlow(
         headful = false,
     }: Partial<RunFlowOptions> = {},
 ) {
-    // validate options
-    for (const arg of ["iterations", "cpu", "net", "timeout"])
-        if (arg in arguments[2] && !(arguments[2][arg] > 0))
-            throw new Error(`the '${arg}' option must be a positive number`)
-
-    if (save?.length === 0)
-        throw new Error(`the 'save' option must not be an empty string`)
-
     checkDockerAvailable()
 
     const app = new WebApp(appName)
@@ -89,7 +81,7 @@ export async function runFlow(
             machine: os.machine(),
             cpus: [...new Set(os.cpus().map(cpu => cpu.model))],
             totalmem: os.totalmem(),
-            user: os.userInfo().username
+            user: os.userInfo().username,
         },
         docker: {
             KernelVersion: dockerInfo.KernelVersion,
@@ -105,8 +97,8 @@ export async function runFlow(
                 Os: dockerInfo.ClientInfo.Os,
                 Arch: dockerInfo.ClientInfo.Arch,
                 Context: dockerInfo.ClientInfo.Context,
-            }
-        }
+            },
+        },
     }
 
     mkdirSync(reportDir, { recursive: true })

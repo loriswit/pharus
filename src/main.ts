@@ -3,7 +3,7 @@ import { runFlow } from "./commands/run.js"
 import { drawPlot } from "./commands/plot.js"
 import { browseApp } from "./commands/browse.js"
 import { cleanCache } from "./commands/clean.js"
-import { parseIntList } from "./utils/helpers.js";
+import { parseBox2d, parseNumber, parseNumList, parseString } from "./cli.js"
 import "./utils/globals.js"
 
 program
@@ -20,13 +20,18 @@ program
     .summary("run user flow and generate report")
     .argument("<app>", "the web app name")
     .argument("<flow>", "the user flow name")
-    .option("-i, --iterations <count>", "number of iterations (default: 10)", parseInt)
+    .option("-i, --iterations <count>", "number of iterations (default: 10)",
+        parseNumber({ type: "int", min: 1 }))
     .option("-p, --patterns <patterns...>", "only include some versions of the app")
     .option("--plot <metric>", "draw a plot of a specific metric")
-    .option("--save <name>", "set a custom name for the report")
-    .option("--cpu <mult>", "CPU speed multiplier", parseFloat)
-    .option("--net <mult>", "network speed multiplier", parseFloat)
-    .option("--timeout <seconds>", "max time spent on a flow step", parseInt)
+    .option("--save <name>", "set a custom name for the report",
+        parseString({ minLength: 1 }))
+    .option("--cpu <mult>", "CPU speed multiplier",
+        parseNumber({ type: "float", min: { value: 0, excluded: true } }))
+    .option("--net <mult>", "network speed multiplier",
+        parseNumber({ type: "float", min: { value: 0, excluded: true } }))
+    .option("--timeout <seconds>", "max time spent on a flow step",
+        parseNumber({ min: { value: 0, excluded: true } }))
     .option("--headful", "display the browser's GUI")
     .action(actionWrapper(runFlow))
 
@@ -37,10 +42,14 @@ program
     .argument("<report>", "The report name")
     .argument("<metric>", "The metric to plot")
     .option("-p, --patterns <patterns...>", "only include some rendering patterns")
-    .option("-s, --steps <numbers...>", "only include some flow steps", parseIntList)
-    .option("-t, --truncate <percentile>", "truncated mean percentile (default: 20)", parseInt)
+    .option("-s, --steps <numbers...>", "only include some flow steps",
+        parseNumList({ type: "int", min: 1 }))
+    .option("-t, --truncate <percentile>", "truncated mean percentile (default: 20)",
+        parseNumber({ type: "int", min: 0, max: 49 }))
     .option("--title <title>", "the plot title")
     .option("-l, --legends <legends...>", "custom legends for patterns")
+    .option("-w, --window-size <width,height>", "the window width and height",
+        parseBox2d({ type: "int", min: 200 }))
     .action(actionWrapper(drawPlot))
 
 program
