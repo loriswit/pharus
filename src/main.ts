@@ -32,6 +32,7 @@ program
         parseNumber({ type: "float", min: { value: 0, excluded: true } }))
     .option("--timeout <seconds>", "max time spent on a flow step",
         parseNumber({ min: { value: 0, excluded: true } }))
+    .option("--idle", "wait for idle network before ending block")
     .option("--headful", "display the browser's GUI")
     .action(actionWrapper(runFlow))
 

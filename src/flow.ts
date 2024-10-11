@@ -10,6 +10,7 @@ export interface FlowConfig {
     mode: FlowMode
     name: string
     timeout: number
+    waitForIdle: boolean
     printProgress: boolean
     settings: SharedFlagsSettings
     generateReport: {
@@ -38,6 +39,7 @@ export class Flow {
                          mode = FlowMode.Navigation,
                          name,
                          timeout,
+                         waitForIdle,
                          printProgress = false,
                          settings,
                          generateReport = {},
@@ -61,11 +63,22 @@ export class Flow {
         if (timeout)
             page.setDefaultTimeout(timeout)
 
+        let idleTime = undefined
+        if (waitForIdle) {
+            idleTime = Math.min(3000000 / (settings?.throttling?.throughputKbps ?? 1500), 10000)
+            console.debug(`Minimum network idle time: ${idleTime} ms`)
+        }
+
         // auto-accept dialog boxes
         page.on("dialog", async dialog => await dialog.accept())
 
-        await userFlow.navigate(url, { name: "Initial page load" })
-        const runner = new FlowRunner(mode, page, userFlow) as Record<keyof FlowRunner, Function>
+        await userFlow.startNavigation({ name: "Initial page load" })
+        await page.goto(url)
+        if (waitForIdle)
+            await page.waitForNetworkIdle({ idleTime })
+        await userFlow.endNavigation()
+
+        const runner = new FlowRunner(mode, page, userFlow, { idleTime }) as Record<keyof FlowRunner, Function>
 
         try {
             for (const [index, step] of this.steps.entries()) {
@@ -96,15 +109,21 @@ export class Flow {
     }
 }
 
+interface FlowRunnerOptions {
+    idleTime: number
+}
+
 class FlowRunner {
     private readonly mode: FlowMode
     private readonly page: Page
     private readonly userFlow: UserFlow
+    private readonly options: Partial<FlowRunnerOptions>
 
-    public constructor(mode: FlowMode, page: Page, userFlow: UserFlow) {
+    public constructor(mode: FlowMode, page: Page, userFlow: UserFlow, options: Partial<FlowRunnerOptions> = {}) {
         this.mode = mode
         this.page = page
         this.userFlow = userFlow
+        this.options = options
     }
 
     public async click(selector: string) {
@@ -146,6 +165,8 @@ class FlowRunner {
     public async end(selector: string) {
         console.debug(`FlowRunner.end | ${selector}`)
         await this.page.waitForSelector(selector)
+        if (this.options.idleTime)
+            await this.page.waitForNetworkIdle({ idleTime: this.options.idleTime })
         if (this.mode === FlowMode.Timespan)
             await this.userFlow.endTimespan()
         else

@@ -16,6 +16,7 @@ export interface RunFlowOptions {
     cpu: number
     net: number
     timeout: number
+    idle: boolean
     headful: boolean
 }
 
@@ -30,6 +31,7 @@ export async function runFlow(
         cpu = 1,
         net = 1,
         timeout = 20,
+        idle = false,
         headful = false,
     }: Partial<RunFlowOptions> = {},
 ) {
@@ -65,8 +67,9 @@ export async function runFlow(
     report.metadata = {
         name: reportName,
         success: false,
-        params: { iterations, patterns, plot, cpu, net, timeout },
+        params: { iterations, patterns, plot, cpu, net, timeout, idle },
         startDate: new Date(),
+        endDate: undefined,
         pharusVersion: PKG_VERSION,
         originalPath: reportDir,
         cmdLine: process.argv.join(" "),
@@ -124,6 +127,7 @@ export async function runFlow(
                         name: `${appName}-${pattern}`,
                         mode: FlowMode.Timespan,
                         timeout: timeout * 1000,
+                        waitForIdle: idle,
                         generateReport: { json: resolve(reportDir, pattern, `${reportFilename}.json`) },
                         settings: {
                             throttling: {
