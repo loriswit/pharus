@@ -63,7 +63,7 @@ export async function runFlow(
     const dockerInfo = JSON.parse(execSync("docker info --format json").toString())
 
     report.metadata = {
-        name: save,
+        name: reportName,
         success: false,
         params: { iterations, patterns, plot, cpu, net, timeout },
         startDate: new Date(),
