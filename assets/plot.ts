@@ -9,6 +9,16 @@ Chart.register(
 const res = await fetch("/params")
 const { title, data, unit } = await res.json() as ParamsPayload
 
+// convert to kilobytes
+if (unit === "byte") {
+    for (const dataset of data.datasets)
+        dataset.data.forEach(data => {
+            data.y /= 1000
+            if (data.yMin) data.yMin /= 1000
+            if (data.yMax) data.yMax /= 1000
+        })
+}
+
 if (title)
     document.title = title
 
@@ -30,26 +40,41 @@ new Chart(
                 tooltip: {
                     callbacks: {
                         label(context) {
-                            const unitStr =
-                                unit === "unitless" ? "" :
-                                    (unit === "millisecond" ? "ms" : unit)
-
+                            let unitLabel: string
                             let values = [context.parsed.y, context.parsed.yMin, context.parsed.yMax] as number[]
-                            if (unit === "millisecond")
-                                values = values.map(Math.round)
+
+                            switch (unit) {
+                                case "millisecond":
+                                    unitLabel = "ms"
+                                    values = values.map(Math.round)
+                                    break
+
+                                case "byte":
+                                    unitLabel = "KB"
+                                    values = values.map(Math.round)
+                                    break
+
+                                case "unitless":
+                                case undefined:
+                                    unitLabel = ""
+                                    break
+
+                                default:
+                                    unitLabel = unit
+                            }
 
                             const [mean, min, max] = values
-                            return `${mean} ${unitStr} [${min}, ${max}]`
-                        }
-                    }
-                }
+                            return `${mean} ${unitLabel} [${min}, ${max}]`
+                        },
+                    },
+                },
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     title: {
                         display: unit !== "unitless",
-                        text: unit,
+                        text: unit === "byte" ? "kilobyte" : unit,
                     },
                 },
             },
