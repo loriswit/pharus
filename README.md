@@ -49,7 +49,7 @@ Note that when running in a Docker container, Pharus will communicate with the h
 
 To use Pharus, you need to provide at least one web app implemented with different rendering patterns. You also need to provide at least one user flow for each web app.
 
-Web apps should be placed inside the *app* folder at the root of this repository.
+Web apps should be placed inside the *app* folder at the root of this repository. A collection of sample web apps is [available on GitHub](https://github.com/loriswit/pharus-sample-apps), these can be downloaded and put inside the *app* folder.
 
 ### Web app definition
 
